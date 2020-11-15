@@ -78,7 +78,7 @@ defmodule Singyeong.Client do
           out =
             reply
             |> Map.from_struct
-            |> Utils.stringify_map
+            |> Utils.stringify_keys
             |> :erlang.term_to_binary
 
           {:reply, {:binary, out}, new_state}
