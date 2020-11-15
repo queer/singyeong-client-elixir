@@ -265,6 +265,8 @@ defmodule Singyeong.Client do
         t: "UPDATE_METADATA",
         d: metadata,
       }
+
+    {:reply, reply, state}
   end
 
   @impl :websocket_client
