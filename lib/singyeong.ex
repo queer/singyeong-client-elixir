@@ -47,20 +47,10 @@ defmodule Singyeong do
         [app_id, password] -> [app_id, password]
       end
 
-    encoding =
-      dsn
-      |> String.split("?", parts: 2)
-      |> case do
-        [_] ->
-          "json"
+    if app_id == nil do
+      raise ArgumentError, "app_id: cannot be nil"
+    end
 
-        [_, query] ->
-          query
-          |> URI.query_decoder
-          |> Enum.into(%{})
-          |> Map.get("encoding", "json")
-      end
-
-    {app_id, password, uri.host, uri.port || 80, protocol, encoding}
+    {app_id, password, uri.host, uri.port || 80, protocol}
   end
 end

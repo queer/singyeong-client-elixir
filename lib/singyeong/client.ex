@@ -22,6 +22,13 @@ defmodule Singyeong.Client do
     :websocket_client.start_link "#{scheme}://#{host}:#{port}?encoding=etf", __MODULE__, opts
   end
 
+  def child_spec(opts) do
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :start_link, [opts]}
+    }
+  end
+
   @impl :websocket_client
   def init({app_id, password, host, port, scheme}) do
     :ets.new :singyeong, [:named_table, :set, :public, read_concurrency: true]
