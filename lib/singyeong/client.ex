@@ -161,9 +161,113 @@ defmodule Singyeong.Client do
   end
 
   @impl :websocket_client
+  def websocket_info({:send, nonce, query, payload}, state) do
+    reply =
+      %Payload{
+        op: @op_dispatch,
+        t: "SEND",
+        d: %{
+          target: query,
+          nonce: nonce,
+          payload: payload,
+        },
+      }
+    {:reply, reply, state}
+  end
+
+  @impl :websocket_client
+  def websocket_info({:broadcast, nonce, query, payload}, state) do
+    reply =
+      %Payload{
+        op: @op_dispatch,
+        t: "BROADCAST",
+        d: %{
+          target: query,
+          nonce: nonce,
+          payload: payload,
+        },
+      }
+    {:reply, reply, state}
+  end
+
+  @impl :websocket_client
+  def websocket_info({:queue, queue, nonce, query, payload}, state) do
+    reply =
+      %Payload{
+        op: @op_dispatch,
+        t: "QUEUE",
+        d: %{
+          queue: queue,
+          nonce: nonce,
+          target: query,
+          payload: payload,
+        },
+      }
+    {:reply, reply, state}
+  end
+
+  @impl :websocket_client
+  def websocket_info({:queue_request, queue}, state) do
+    reply =
+      %Payload{
+        op: @op_dispatch,
+        t: "QUEUE_REQUEST",
+        d: %{
+          queue: queue,
+        },
+      }
+    {:reply, reply, state}
+  end
+
+  @impl :websocket_client
+  def websocket_info({:queue_ack, queue, id}, state) do
+    reply =
+      %Payload{
+        op: @op_dispatch,
+        t: "QUEUE_ACK",
+        d: %{
+          queue: queue,
+          id: id,
+        }
+      }
+
+    {:reply, reply, state}
+  end
+
+  @impl :websocket_client
   def websocket_terminate(_info, _ws, _state) do
     Logger.info "[신경] connect: abnormal close"
     :ok
+  end
+
+  #########################
+  ## EXTERNAL SOCKET API ##
+  #########################
+
+  def send_msg(query, payload), do: send_msg nil, query, payload
+
+  def send_msg(nonce, query, payload) do
+    :websocket_client.cast __MODULE__, {:send, nonce, query, payload}
+  end
+
+  def broadcast_msg(query, payload), do: broadcast_msg nil, query, payload
+
+  def broadcast_msg(nonce, query, payload) do
+    :websocket_client.cast __MODULE__, {:broadcast, nonce, query, payload}
+  end
+
+  def queue_msg(queue, query, payload), do: queue_msg queue, nil, query, payload
+
+  def queue_msg(queue, nonce, query, payload) do
+    :websocket_client.cast __MODULE__, {:queue, queue, nonce, query, payload}
+  end
+
+  def queue_request(queue) do
+    :websocket_client.cast __MODULE__, {:queue_request, queue}
+  end
+
+  def queue_ack(queue, id) do
+    :websocket_client.cast __MODULE__, {:queue_ack, queue, id}
   end
 
   ###############
