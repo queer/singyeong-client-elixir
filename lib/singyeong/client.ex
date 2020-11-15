@@ -49,7 +49,7 @@ defmodule Singyeong.Client do
 
     Logger.debug "[신경] client: init: ready for payloads."
 
-    {:ok, state}
+    {:reconnect, state}
   end
 
   @impl :websocket_client
