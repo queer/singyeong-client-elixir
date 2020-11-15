@@ -139,10 +139,23 @@ defmodule Singyeong.Client do
   end
 
   defp process_frame(@op_dispatch, frame, state) do
-    # TODO: Do something with frame.t here.
     # Logger.debug "[신경] dispatch: frame: #{inspect frame}"
-    payload = frame.d["payload"]
-    Singyeong.Producer.notify payload
+    event =
+      case Utils.event_name_to_atom(frame.t) = type do
+        :send ->
+          {:send, frame.d["nonce"], frame.d["payload"]}
+
+        :broadcast ->
+          {:broadcast, frame.d["nonce"], frame.d["payload"]}
+
+        :queue ->
+          {:queue, frame.d["payload"]["queue"], frame.d["nonce"], frame.d["payload"]["payload"]}
+
+        :queue_confirm ->
+          {:queue_confirm, frame.d["queue"]}
+      end
+
+    Singyeong.Producer.notify event
     {:noreply, state}
   end
 

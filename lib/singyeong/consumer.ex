@@ -1,7 +1,13 @@
 defmodule Singyeong.Consumer do
   use ConsumerSupervisor
 
-  @callback handle_event(term()) :: term()
+  @type event() ::
+      {:send, String.t() | nil, term()}
+      | {:broadcast, String.t() | nil, term()}
+      | {:queue, String.t(), String.t() | nil, term()}
+      | {:queue_confirm, String.t()}
+
+  @callback handle_event(@event()) :: term()
 
   def start_link(mod) do
     ConsumerSupervisor.start_link __MODULE__, mod

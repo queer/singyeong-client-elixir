@@ -1,4 +1,11 @@
 defmodule Singyeong.Utils do
+  @events %{
+    "SEND" => :send,
+    "BROADCAST" => :broadcast,
+    "QUEUE" => :queue,
+    "QUEUE_CONFIRM" => :queue_confirm,
+  }
+
   def stringify_keys(map, recurse? \\ false)
 
   def stringify_keys(map, recurse?) when is_map(map) do
@@ -18,4 +25,8 @@ defmodule Singyeong.Utils do
   end
 
   def stringify_keys(not_map, _), do: not_map
+
+  def event_name_to_atom(event) do
+    Map.get(@events, event, nil) || raise ArgumentError, "event: unknown type: #{inspect event}"
+  end
 end
