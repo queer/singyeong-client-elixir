@@ -4,8 +4,7 @@ A pure Elixir client for 신경.
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `singyeong` to your list of dependencies in `mix.exs`:
+[Get it on Hex.](https://hex.pm/packages/singyeong)
 
 ```elixir
 def deps do
@@ -15,7 +14,30 @@ def deps do
 end
 ```
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/singyeong](https://hexdocs.pm/singyeong).
+## Usage
 
+1.  Add children to your application's supervisor:
+    ```Elixir
+    # The actual client that connects and sends/receives messages
+    {Singyeong.Client, Singyeong.parse_dsn("singyeong://my_app_name:my_password@localhost:4567")},
+    # Event producer
+    Singyeong.Producer,
+    # Your event consumer
+    MyApp.Consumer,
+    ```
+2.  Create a consumer:
+    ```Elixir
+    defmodule MyApp.Consumer do
+      use Singyeong.Consumer
+
+      def start_link do
+        Consumer.start_link __MODULE__
+      end
+
+      def handle_event(event) do
+        IO.inspect event, pretty: true
+        :ok
+      end
+    end
+    ```
+3.  That's it! Start running your application whenever you want.
