@@ -19,6 +19,7 @@ defmodule Singyeong.Client do
 
 
   def start_link({_app_id, _password, host, port, scheme} = opts) do
+    Logger.debug "[신경] client: starting link"
     :websocket_client.start_link "#{scheme}://#{host}:#{port}?encoding=etf", __MODULE__, opts
   end
 
