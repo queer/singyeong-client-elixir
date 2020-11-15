@@ -4,7 +4,7 @@ defmodule Singyeong.Consumer do
   @callback handle_event(term()) :: term()
 
   def start_link(mod) do
-    GenStage.start_link __MODULE__, mod
+    ConsumerSupervisor.start_link __MODULE__, mod
   end
 
   def init(mod) do
