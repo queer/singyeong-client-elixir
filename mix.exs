@@ -43,6 +43,8 @@ defmodule Singyeong.MixProject do
       {:websocket_client, "~> 1.4"},
       {:typed_struct, "~> 0.2.1"},
       {:gen_stage, "~> 1.0"},
+      {:httpoison, "~> 1.7"},
+      {:jason, "~> 1.2"},
 
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
     ]

@@ -1,6 +1,7 @@
 defmodule Singyeong.Client do
   alias Singyeong.{
     Payload,
+    ProxiedRequest,
     Query,
     Utils,
   }
@@ -141,7 +142,7 @@ defmodule Singyeong.Client do
   defp process_frame(@op_dispatch, frame, state) do
     # Logger.debug "[신경] dispatch: frame: #{inspect frame}"
     event =
-      case Utils.event_name_to_atom(frame.t) = type do
+      case Utils.event_name_to_atom(frame.t) do
         :send ->
           {:send, frame.d["nonce"], frame.d["payload"]}
 
@@ -182,7 +183,7 @@ defmodule Singyeong.Client do
   end
 
   @impl :websocket_client
-  def websocket_info({:send, nonce, query, payload}, state) do
+  def websocket_info({:send, nonce, query, payload}, _ws, state) do
     reply =
       %Payload{
         op: @op_dispatch,
@@ -197,7 +198,7 @@ defmodule Singyeong.Client do
   end
 
   @impl :websocket_client
-  def websocket_info({:broadcast, nonce, query, payload}, state) do
+  def websocket_info({:broadcast, nonce, query, payload}, _ws, state) do
     reply =
       %Payload{
         op: @op_dispatch,
@@ -212,7 +213,7 @@ defmodule Singyeong.Client do
   end
 
   @impl :websocket_client
-  def websocket_info({:queue, queue, nonce, query, payload}, state) do
+  def websocket_info({:queue, queue, nonce, query, payload}, _ws, state) do
     reply =
       %Payload{
         op: @op_dispatch,
@@ -228,7 +229,7 @@ defmodule Singyeong.Client do
   end
 
   @impl :websocket_client
-  def websocket_info({:queue_request, queue}, state) do
+  def websocket_info({:queue_request, queue}, _ws, state) do
     reply =
       %Payload{
         op: @op_dispatch,
@@ -241,7 +242,7 @@ defmodule Singyeong.Client do
   end
 
   @impl :websocket_client
-  def websocket_info({:queue_ack, queue, id}, state) do
+  def websocket_info({:queue_ack, queue, id}, _ws, state) do
     reply =
       %Payload{
         op: @op_dispatch,
@@ -318,6 +319,11 @@ defmodule Singyeong.Client do
       }
       |> Map.from_struct
       |> Jason.encode!
+
+    res = HTTPoison.request! :post, "#{protocol}://#{host}:#{port}/api/v1/proxy", proxy_body,
+        [{"Content-Type", "application/json"}, {"Authorization", auth}]
+
+    res.body
   end
 
   ###############

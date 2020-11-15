@@ -5,7 +5,7 @@ defmodule Singyeong.ProxiedRequest do
   typedstruct enforce: true do
     field :method, String.t()
     field :route, String.t()
-    field :body, term(),
+    field :body, term()
     field :query, Query.t()
   end
 end

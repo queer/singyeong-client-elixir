@@ -38,7 +38,7 @@ defmodule Singyeong.Query do
     | :"$nor"
 
   @type boolean_op() :: %{
-    required(boolean_op_name()) => value()
+    required(boolean_op_name()) => term()
   }
 
   @type logical_op() :: %{
@@ -62,7 +62,7 @@ defmodule Singyeong.Query do
   Creates a new query for the given target application
   """
   @spec new(String.t()) :: __MODULE__.t()
-  def new(name), do: %__MODULE__{name: name}
+  def new(name), do: %__MODULE__{application: name}
 
   @doc """
   Converts the provided values into a proper boolean op.
@@ -89,8 +89,8 @@ defmodule Singyeong.Query do
   @doc """
   Adds the provided logical op over the provided ops to the query.
   """
-  @spec with_logigal_op(__MODULE__.t(), logical_op_name(), op(), op()) :: __MODULE__.t()
-  def with_logical_op(%__MODULE__{}, logical_op, op1, op2) when logical_op in @logical_op_names do
+  @spec with_logical_op(__MODULE__.t(), logical_op_name(), op(), op()) :: __MODULE__.t()
+  def with_logical_op(%__MODULE__{ops: ops} = query, logical_op, op1, op2) when logical_op in @logical_op_names do
     %{query | ops: ops ++ [%{logical_op => [op1, op2]}]}
   end
 end

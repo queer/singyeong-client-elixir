@@ -7,7 +7,7 @@ defmodule Singyeong.Consumer do
       | {:queue, String.t(), String.t() | nil, term()}
       | {:queue_confirm, String.t()}
 
-  @callback handle_event(@event()) :: term()
+  @callback handle_event(event()) :: term()
 
   def start_link(mod) do
     ConsumerSupervisor.start_link __MODULE__, mod
