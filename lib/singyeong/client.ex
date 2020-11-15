@@ -266,28 +266,68 @@ defmodule Singyeong.Client do
   ## EXTERNAL SOCKET API ##
   #########################
 
+  @doc """
+  Send a message with the given payload to a single client matching the given
+  routing query.
+  """
+  @spec send_msg(Query.t(), term()) :: :ok
   def send_msg(query, payload), do: send_msg nil, query, payload
 
+  @doc """
+  Send a message with the given payload to a single client matching the given
+  routing query, sending the given nonce to allow request-response messaging.
+  """
+  @spec send_msg(String.t() | nil, Query.t(), term()) :: :ok
   def send_msg(nonce, query, payload) do
     :websocket_client.cast __MODULE__, {:send, nonce, query, payload}
   end
 
+  @doc """
+  Send a message with the given payload to all clients matching the given
+  routing query.
+  """
+  @spec broadcast_msg(Query.t(), term()) :: :ok
   def broadcast_msg(query, payload), do: broadcast_msg nil, query, payload
 
+  @doc """
+  Send a message with the given payload to all clients matching the given
+  routing query, sending the given nonce to allow request-response messaging.
+  """
+  @spec broadcast_msg(String.t() | nil, Query.t(), term()) :: :ok
   def broadcast_msg(nonce, query, payload) do
     :websocket_client.cast __MODULE__, {:broadcast, nonce, query, payload}
   end
 
+  @doc """
+  Push the specified message to the specified queue, with a routing query to
+  determine what client can pull it from the queue.
+  """
+  @spec queue_msg(String.t(), Query.t(), term()) :: :ok
   def queue_msg(queue, query, payload), do: queue_msg queue, nil, query, payload
 
+  @doc """
+  Push the specified message to the specified queue, with a routing query to
+  determine what client can pull it from the queue, sending the given nonce to
+  allow request-response messaging.
+  """
+  @spec queue_msg(String.t(), String.t() | nil, Query.t(), term()) :: :ok
   def queue_msg(queue, nonce, query, payload) do
     :websocket_client.cast __MODULE__, {:queue, queue, nonce, query, payload}
   end
 
+  @doc """
+  Mark this client as being ready to process a message from the given queue.
+  """
+  @spec queue_request(String.t()) :: :ok
   def queue_request(queue) do
     :websocket_client.cast __MODULE__, {:queue_request, queue}
   end
 
+  @doc """
+  ACK a message from the given queue, letting the server know that it doesn't
+  need to be requeued.
+  """
+  @spec queue_ack(String.t(), String.t()) :: :ok
   def queue_ack(queue, id) do
     :websocket_client.cast __MODULE__, {:queue_ack, queue, id}
   end
@@ -296,6 +336,10 @@ defmodule Singyeong.Client do
   ## REST PROXYING API ##
   #######################
 
+  @doc """
+  Proxies the given HTTP request with the given body to a target matching the
+  given routing query, using the HTTP method provided.
+  """
   @spec proxy(Query.t(), String.t(), http_method(), term()) :: term()
   def proxy(query, route, method, body \\ nil) do
     [{:auth, auth}] = :ets.lookup :singyeong, :auth
