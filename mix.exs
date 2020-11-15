@@ -18,12 +18,12 @@ defmodule Singyeong.MixProject do
         links: %{"GitHub" => @repo_url},
         licenses: ["MIT"],
       ],
-      description: "Plugin API for singyeong.",
+      description: "Elixir client for singyeong.",
 
       # Docs
-      name: "singyeong_plugin",
+      name: "singyeong",
       docs: [
-        homepage_url: "https://github.com/queer/singyeong",
+        homepage_url: "https://github.com/queer/singyeong-client-elixir",
         source_url: @repo_url,
         extras: [
           "README.md",
