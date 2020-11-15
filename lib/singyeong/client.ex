@@ -1,11 +1,19 @@
 defmodule Singyeong.Client do
   alias Singyeong.{
     Payload,
+    Query,
     Utils,
   }
   require Logger
 
   @behaviour :websocket_client
+
+  @type http_method() ::
+      :get
+      | :post
+      | :put
+      | :patch
+      | :delete
 
   ###############
   ## WEBSOCKET ##
@@ -41,7 +49,7 @@ defmodule Singyeong.Client do
     :ets.insert :singyeong, {:password, password}
     :ets.insert :singyeong, {:host,     host}
     :ets.insert :singyeong, {:port,     port}
-    :ets.insert :singyeong, {:scheme,   scheme}
+    :ets.insert :singyeong, {:ssl,      scheme == "wss"}
 
     state =
       %{
@@ -268,6 +276,35 @@ defmodule Singyeong.Client do
 
   def queue_ack(queue, id) do
     :websocket_client.cast __MODULE__, {:queue_ack, queue, id}
+  end
+
+  #######################
+  ## REST PROXYING API ##
+  #######################
+
+  @spec proxy(Query.t(), String.t(), http_method(), term()) :: term()
+  def proxy(query, route, method, body \\ nil) do
+    [{:auth, auth}] = :ets.lookup :singyeong, :auth
+    [{:host, host}] = :ets.lookup :singyeong, :host
+    [{:port, port}] = :ets.lookup :singyeong, :port
+    [{:ssl,  ssl }] = :ets.lookup :singyeong, :ssl
+
+    protocol = if ssl, do: "https", else: "http"
+
+    method =
+      method
+      |> Atom.to_string
+      |> String.upcase
+
+    proxy_body =
+      %ProxiedRequest{
+        method: method,
+        route: route,
+        query: query,
+        body: body,
+      }
+      |> Map.from_struct
+      |> Jason.encode!
   end
 
   ###############
