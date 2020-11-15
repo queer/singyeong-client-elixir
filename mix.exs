@@ -2,7 +2,7 @@ defmodule Singyeong.MixProject do
   use Mix.Project
 
   @version "0.1.0"
-  @repo_url "https://github.com/queer/singyeong_client_elixir"
+  @repo_url "https://github.com/queer/singyeong-client-elixir"
 
   def project do
     [
