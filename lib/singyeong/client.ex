@@ -1,5 +1,8 @@
 defmodule Singyeong.Client do
-  alias Singyeong.Payload
+  alias Singyeong.{
+    Payload,
+    Utils,
+  }
   require Logger
 
   @behaviour :websocket_client
@@ -72,7 +75,13 @@ defmodule Singyeong.Client do
     try do
       case process_frame(payload[:op], payload, state) do
         {:reply, reply, new_state} ->
-          {:reply, {:binary, :erlang.term_to_binary(reply)}, new_state}
+          out =
+            reply
+            |> Map.from_struct
+            |> Utils.stringify_map
+            |> :erlang.term_to_binary
+
+          {:reply, {:binary, out}, new_state}
 
         {:ok, _} = ok ->
           ok
