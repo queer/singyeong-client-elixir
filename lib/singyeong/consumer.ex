@@ -8,13 +8,21 @@ defmodule Singyeong.Consumer do
   end
 
   def init(mod) do
-    ConsumerSupervisor.init [
-      %{
-        id: mod,
-        start: {mod, :start_link, []},
-        restart: :transient
-      }
-    ], [strategy: :one_for_one, subscribe_to: [Singyeong.Producer]]
+    children =
+      [
+        %{
+          id: mod,
+          start: {mod, :start_link, []},
+          restart: :transient,
+        },
+      ]
+    opts =
+      [
+        strategy: :one_for_one,
+        subscribe_to: [Singyeong.Producer],
+      ]
+
+    ConsumerSupervisor.init children, opts
   end
 
   def handle_events(_events, _from, state) do
