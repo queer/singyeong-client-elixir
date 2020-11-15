@@ -19,8 +19,9 @@ defmodule Singyeong.Client do
 
 
   def start_link({_app_id, _password, host, port, scheme} = opts) do
-    Logger.debug "[신경] client: starting link."
-    :websocket_client.start_link "#{scheme}://#{host}:#{port}?encoding=etf", __MODULE__, opts
+    uri = "#{scheme}://#{host}:#{port}?encoding=etf"
+    Logger.debug "[신경] client: starting link, uri=#{uri}."
+    :websocket_client.start_link uri, __MODULE__, opts
   end
 
   def child_spec(opts) do
