@@ -1,5 +1,6 @@
 defmodule Singyeong.Client do
   alias Singyeong.{
+    Metadata,
     Payload,
     ProxiedRequest,
     Query,
@@ -257,6 +258,16 @@ defmodule Singyeong.Client do
   end
 
   @impl :websocket_client
+  def websocket_info({:metadata_update, metadata}, _ws, state) do
+    reply =
+      %Payload{
+        op: @op_dispatch,
+        t: "UPDATE_METADATA",
+        d: metadata,
+      }
+  end
+
+  @impl :websocket_client
   def websocket_terminate(_info, _ws, _state) do
     Logger.info "[신경] connect: abnormal close"
     :ok
@@ -330,6 +341,43 @@ defmodule Singyeong.Client do
   @spec queue_ack(String.t(), String.t()) :: :ok
   def queue_ack(queue, id) do
     :websocket_client.cast __MODULE__, {:queue_ack, queue, id}
+  end
+
+  @doc """
+  Update the client's metadata. A metadata update has a few parts:
+
+  - key
+  - type
+  - value
+
+  Possible types are:
+
+  - string
+  - integer
+  - float
+  - version
+  - list
+
+  A metadata update looks like:
+
+      %{
+        key: %{
+          type: "string",
+          value: "potato",
+        },
+        users: %{
+          type: "list",
+          value: [123, 456, 789],
+        }
+        version: %{
+          type: "version",
+          value: "2.0.0",
+        }
+      }
+  """
+  @spec update_metadata(Metadata.t()) :: :ok
+  def update_metadata(metadata) do
+    :websocket_client.cast __MODULE__, {:metadata_update, metadata}
   end
 
   #######################

@@ -9,7 +9,7 @@ A pure Elixir client for 신경.
 ```elixir
 def deps do
   [
-    {:singyeong, "~> 0.1.0"}
+    {:singyeong, "~> 0.1.1"}
   ]
 end
 ```
