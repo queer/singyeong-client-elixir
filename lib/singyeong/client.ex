@@ -181,7 +181,7 @@ defmodule Singyeong.Client do
     Logger.debug "[신경] heartbeat: sending"
     Process.send_after self(), {:heartbeat, interval}, interval
 
-    {:reply, reply, state}
+    {:reply, reply(reply), state}
   end
 
   @impl :websocket_client
@@ -198,7 +198,7 @@ defmodule Singyeong.Client do
       }
 
     Logger.debug "[신경] send: dispatching"
-    {:reply, reply, state}
+    {:reply, reply(reply), state}
   end
 
   @impl :websocket_client
@@ -215,7 +215,7 @@ defmodule Singyeong.Client do
       }
 
     Logger.debug "[신경] broadcast: dispatching"
-    {:reply, reply, state}
+    {:reply, reply(reply), state}
   end
 
   @impl :websocket_client
@@ -233,7 +233,7 @@ defmodule Singyeong.Client do
       }
 
     Logger.debug "[신경] queue: dispatching"
-    {:reply, reply, state}
+    {:reply, reply(reply), state}
   end
 
   @impl :websocket_client
@@ -248,7 +248,7 @@ defmodule Singyeong.Client do
       }
 
     Logger.debug "[신경] queue: requesting"
-    {:reply, reply, state}
+    {:reply, reply(reply), state}
   end
 
   @impl :websocket_client
@@ -264,7 +264,7 @@ defmodule Singyeong.Client do
       }
 
     Logger.debug "[신경] queue: acking"
-    {:reply, reply, state}
+    {:reply, reply(reply), state}
   end
 
   @impl :websocket_client
@@ -277,7 +277,7 @@ defmodule Singyeong.Client do
       }
 
     Logger.debug "[신경] metadata: sending update"
-    {:reply, reply, state}
+    {:reply, reply(reply), state}
   end
 
   @impl :websocket_client
@@ -285,6 +285,8 @@ defmodule Singyeong.Client do
     Logger.info "[신경] connect: abnormal close"
     :ok
   end
+
+  defp reply(payload), do: {:binary, :erlang.term_to_binary(payload)}
 
   #########################
   ## EXTERNAL SOCKET API ##
