@@ -32,12 +32,10 @@ defmodule Singyeong.Client do
 
 
   def start_link({app_id, password, host, port, scheme}) do
-    uri = "#{host}:#{port}/gateway/websocket"
     Logger.debug "[신경] client: starting link, uri=#{uri}."
     GenServer.start_link __MODULE__, %{
       app_id: app_id,
       password: password,
-      uri: uri,
       host: host,
       port: port,
       scheme: scheme,
@@ -76,9 +74,9 @@ defmodule Singyeong.Client do
   end
 
   @impl GenServer
-  def handle_continue(:connect, %{port: port, uri: uri} = state) do
+  def handle_continue(:connect, %{port: port, host: host} = state) do
     {:ok, worker} =
-      uri
+      host
       |> :binary.bin_to_list
       |> :gun.open(port)
 
