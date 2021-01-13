@@ -32,7 +32,7 @@ defmodule Singyeong.Client do
 
 
   def start_link({app_id, password, host, port, scheme}) do
-    Logger.debug "[신경] client: starting link, uri=#{uri}."
+    Logger.debug "[신경] client: starting link, uri=#{scheme}://#{app_id}:#{password}@#{host}:#{port}"
     GenServer.start_link __MODULE__, %{
       app_id: app_id,
       password: password,
