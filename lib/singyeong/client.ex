@@ -136,12 +136,12 @@ defmodule Singyeong.Client do
   end
 
   defp process_frame(@op_heartbeat_ack, _frame, state) do
-    # Logger.debug "[신경] heartbeat: ack"
+    Logger.debug "[신경] heartbeat: ack"
     {:noreply, state}
   end
 
   defp process_frame(@op_dispatch, frame, state) do
-    # Logger.debug "[신경] dispatch: frame: #{inspect frame}"
+    Logger.debug "[신경] dispatch: frame: #{inspect frame}"
     event =
       case Utils.event_name_to_atom(frame.t) do
         :send ->
