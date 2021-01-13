@@ -31,8 +31,8 @@ defmodule Singyeong.Client do
   @op_error         8
 
 
-  def start_link({app_id, password, host, port, scheme}) do
-    uri = "#{scheme}://#{host}:#{port}/gateway/websocket"
+  def start_link({app_id, password, host, port, _scheme}) do
+    uri = "#{host}:#{port}/gateway/websocket"
     Logger.debug "[신경] client: starting link, uri=#{uri}."
     GenServer.start_link __MODULE__, %{
       app_id: app_id,
@@ -133,6 +133,23 @@ defmodule Singyeong.Client do
         Logger.error "[신경] #{inspect __STACKTRACE__}"
         {:ok, state}
     end
+  end
+
+  def handle_info({:gun_ws, _conn, _stream, {:close, code, reason}}, state) do
+    Logger.warn "[신경] disconnect: code #{code}, reason #{inspect reason}"
+    {:noreply, state}
+  end
+
+  def handle_info({:gun_down, _conn, _proto, _reason, _, _}, state) do
+    # TODO: Use a real timer to cancel heartbeat task
+    {:noreply, state}
+  end
+
+  def handle_info({:gun_up, worker, _proto}, state) do
+    stream = :gun.ws_upgrade worker, state.uri
+    await_ws_upgrade worker, stream
+    Logger.warn "[신경] Reconnected after connection broke"
+    {:noreply, %{state | heartbeat_ack: true}}
   end
 
   defp process_frame(@op_hello, frame, %{app_id: app_id, client_id: client_id, auth: auth} = state) do
