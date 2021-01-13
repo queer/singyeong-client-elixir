@@ -178,6 +178,7 @@ defmodule Singyeong.Client do
         }
       }
 
+    Logger.debug "[신경] heartbeat: sending"
     Process.send_after self(), {:heartbeat, interval}, interval
 
     {:reply, reply, state}
@@ -195,6 +196,8 @@ defmodule Singyeong.Client do
           payload: payload,
         },
       }
+
+    Logger.debug "[신경] send: dispatching"
     {:reply, reply, state}
   end
 
@@ -210,6 +213,8 @@ defmodule Singyeong.Client do
           payload: payload,
         },
       }
+
+    Logger.debug "[신경] broadcast: dispatching"
     {:reply, reply, state}
   end
 
@@ -226,6 +231,8 @@ defmodule Singyeong.Client do
           payload: payload,
         },
       }
+
+    Logger.debug "[신경] queue: dispatching"
     {:reply, reply, state}
   end
 
@@ -239,6 +246,8 @@ defmodule Singyeong.Client do
           queue: queue,
         },
       }
+
+    Logger.debug "[신경] queue: requesting"
     {:reply, reply, state}
   end
 
@@ -254,6 +263,7 @@ defmodule Singyeong.Client do
         }
       }
 
+    Logger.debug "[신경] queue: acking"
     {:reply, reply, state}
   end
 
@@ -266,6 +276,7 @@ defmodule Singyeong.Client do
         d: metadata,
       }
 
+    Logger.debug "[신경] metadata: sending update"
     {:reply, reply, state}
   end
 
