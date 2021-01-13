@@ -31,7 +31,7 @@ defmodule Singyeong.Client do
   @op_error         8
 
 
-  def start_link({app_id, password, host, port, _scheme}) do
+  def start_link({app_id, password, host, port, scheme}) do
     uri = "#{host}:#{port}/gateway/websocket"
     Logger.debug "[신경] client: starting link, uri=#{uri}."
     GenServer.start_link __MODULE__, %{
