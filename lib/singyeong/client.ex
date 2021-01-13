@@ -46,7 +46,6 @@ defmodule Singyeong.Client do
   def init(%{
     app_id: app_id,
     password: password,
-    uri: uri,
     host: host,
     port: port,
     scheme: scheme,
