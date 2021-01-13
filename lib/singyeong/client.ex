@@ -121,7 +121,8 @@ defmodule Singyeong.Client do
         }
       }
 
-    {:reply, reply(reply), state}
+    # process_frame doesn't need the special stuff
+    {:reply, reply, state}
   end
 
   defp process_frame(@op_ready, _, state) do
