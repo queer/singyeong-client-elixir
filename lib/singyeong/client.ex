@@ -1,4 +1,5 @@
 defmodule Singyeong.Client do
+  use GenServer
   alias Singyeong.{
     Metadata,
     Payload,
@@ -7,8 +8,6 @@ defmodule Singyeong.Client do
     Utils,
   }
   require Logger
-
-  @behaviour :websocket_client
 
   @type http_method() ::
       :get
@@ -29,23 +28,31 @@ defmodule Singyeong.Client do
   @op_heartbeat     5
   @op_heartbeat_ack 6
   @op_goodbye       7
+  @op_error         8
 
 
-  def start_link({_app_id, _password, host, port, scheme} = opts) do
+  def start_link({app_id, password, host, port, scheme} = opts) do
     uri = "#{scheme}://#{host}:#{port}/gateway/websocket?encoding=etf"
     Logger.debug "[신경] client: starting link, uri=#{uri}."
-    :websocket_client.start_link uri, __MODULE__, opts
+    GenServer.start_link __MODULE__, %{
+      app_id: app_id,
+      password: password,
+      uri: uri,
+      host: host,
+      port: port,
+      scheme: scheme,
+    }, name: __MODULE__
   end
 
-  def child_spec(opts) do
-    %{
-      id: __MODULE__,
-      start: {__MODULE__, :start_link, [opts]}
-    }
-  end
-
-  @impl :websocket_client
-  def init({app_id, password, host, port, scheme}) do
+  @impl GenServer
+  def init(%{
+    app_id: app_id,
+    password: password,
+    uri: uri,
+    host: host,
+    port: port,
+    scheme: scheme,
+  }) do
     :ets.new :singyeong, [:named_table, :set, :public, read_concurrency: true]
     :ets.insert :singyeong, {:app_id,   app_id}
     :ets.insert :singyeong, {:password, password}
@@ -58,28 +65,46 @@ defmodule Singyeong.Client do
         app_id: app_id,
         client_id: id(32),
         auth: password,
+        conn: nil,
       }
 
     Logger.debug "[신경] client: init: ready for payloads."
 
-    {:reconnect, state}
+    {:ok, state, {:continue, :connect}}
   end
 
-  @impl :websocket_client
-  def onconnect(_ws, state) do
-    Logger.info "[신경] connect: ws connected."
-    {:ok, state}
+  def handle_continue(:connect, %{port: port, uri: uri} = state) do
+    {:ok, worker} =
+      uri
+      |> :binary.bin_to_list
+      |> :gun.open(port)
+
+    {:ok, :http} = :gun.await_up worker, 5_000
+    stream = :gun.ws_upgrade worker, "/"
+    await_ws_upgrade worker, stream
+    state = %{state | conn: worker}
+    {:noreply, state}
   end
 
-  @impl :websocket_client
-  def ondisconnect(_ws, state) do
-    # Reconnect after 100ms
-    Logger.info "[신경] disconnected: reconnect in 100ms."
-    {:reconnect, 100, state}
+  defp await_ws_upgrade(worker, stream) do
+    Logger.debug "[신경] connect: awaiting ws upgrade"
+    receive do
+      {:gun_upgrade, ^worker, ^stream, [<<"websocket">>], _headers} ->
+        Logger.debug "[신경] connect: :gun_upgrade"
+        :ok
+
+      {:gun_error, ^worker, ^stream, reason} ->
+        Logger.error "[신경] connect: :gun_error: #{inspect reason, pretty: true}"
+        exit {:ws_upgrade_failed, reason}
+    after
+      @timeout_ws_upgrade ->
+        Logger.error "[신경] connect: cannot upgrade: timeout after #{@timeout_ws_upgrade / 1000} seconds"
+
+        exit :timeout
+    end
   end
 
-  @impl :websocket_client
-  def websocket_handle({:binary, msg}, _ws, state) do
+  def handle_info({:gun_ws, _worker, _stream, {:binary, frame}}, state) do
     # TODO: This is unsafe
     payload = :erlang.binary_to_term msg
     try do
@@ -164,8 +189,7 @@ defmodule Singyeong.Client do
     {:ok, state}
   end
 
-  @impl :websocket_client
-  def websocket_info({:heartbeat, interval}, _ws, %{client_id: client_id} = state) do
+  def handle_info({:heartbeat, interval}, _ws, %{client_id: client_id} = state) do
     reply =
       %Payload{
         op: @op_heartbeat,
@@ -175,13 +199,13 @@ defmodule Singyeong.Client do
       }
 
     Logger.debug "[신경] heartbeat: sending"
+    :gun_ws.send state.conn, reply(reply)
     Process.send_after self(), {:heartbeat, interval}, interval
 
-    {:reply, reply(reply), state}
+    {:noreply, state}
   end
 
-  @impl :websocket_client
-  def websocket_info({:send, nonce, query, payload}, _ws, state) do
+  def handle_info({:send, nonce, query, payload}, _ws, state) do
     reply =
       %Payload{
         op: @op_dispatch,
@@ -194,11 +218,11 @@ defmodule Singyeong.Client do
       }
 
     Logger.debug "[신경] send: dispatching"
-    {:reply, reply(reply), state}
+    :gun_ws.send state.conn, reply(reply)
+    {:noreply, state}
   end
 
-  @impl :websocket_client
-  def websocket_info({:broadcast, nonce, query, payload}, _ws, state) do
+  def handle_info({:broadcast, nonce, query, payload}, _ws, state) do
     reply =
       %Payload{
         op: @op_dispatch,
@@ -211,11 +235,11 @@ defmodule Singyeong.Client do
       }
 
     Logger.debug "[신경] broadcast: dispatching"
-    {:reply, reply(reply), state}
+    :gun_ws.send state.conn, reply(reply)
+    {:noreply, state}
   end
 
-  @impl :websocket_client
-  def websocket_info({:queue, queue, nonce, query, payload}, _ws, state) do
+  def handle_info({:queue, queue, nonce, query, payload}, _ws, state) do
     reply =
       %Payload{
         op: @op_dispatch,
@@ -229,11 +253,11 @@ defmodule Singyeong.Client do
       }
 
     Logger.debug "[신경] queue: dispatching"
-    {:reply, reply(reply), state}
+    :gun_ws.send state.conn, reply(reply)
+    {:noreply, state}
   end
 
-  @impl :websocket_client
-  def websocket_info({:queue_request, queue}, _ws, state) do
+  def handle_info({:queue_request, queue}, _ws, state) do
     reply =
       %Payload{
         op: @op_dispatch,
@@ -244,11 +268,11 @@ defmodule Singyeong.Client do
       }
 
     Logger.debug "[신경] queue: requesting"
-    {:reply, reply(reply), state}
+    :gun_ws.send state.conn, reply(reply)
+    {:noreply, state}
   end
 
-  @impl :websocket_client
-  def websocket_info({:queue_ack, queue, id}, _ws, state) do
+  def handle_info({:queue_ack, queue, id}, _ws, state) do
     reply =
       %Payload{
         op: @op_dispatch,
@@ -260,11 +284,11 @@ defmodule Singyeong.Client do
       }
 
     Logger.debug "[신경] queue: acking"
-    {:reply, reply(reply), state}
+    :gun_ws.send state.conn, reply(reply)
+    {:noreply, state}
   end
 
-  @impl :websocket_client
-  def websocket_info({:metadata_update, metadata}, _ws, state) do
+  def handle_info({:metadata_update, metadata}, _ws, state) do
     reply =
       %Payload{
         op: @op_dispatch,
@@ -273,16 +297,11 @@ defmodule Singyeong.Client do
       }
 
     Logger.debug "[신경] metadata: sending update"
-    {:reply, reply(reply), state}
+    :gun_ws.send state.conn, reply(reply)
+    {:noreply, state}
   end
 
-  def websocket_info({:tcp_closed, _port}, _ws, state) do
-    Logger.info "[신경] disconnected: tcp closed: reconnect in 100ms."
-    {:reconnect, 100, state}
-  end
-
-  @impl :websocket_client
-  def websocket_terminate(_info, _ws, _state) do
+  def terminate(_info, _ws, _state) do
     Logger.info "[신경] connect: abnormal close"
     :ok
   end
@@ -314,7 +333,7 @@ defmodule Singyeong.Client do
   """
   @spec send_msg(String.t() | nil, Query.t(), term()) :: :ok
   def send_msg(nonce, query, payload) do
-    :websocket_client.cast __MODULE__, {:send, nonce, query, payload}
+    GenServer.cast __MODULE__, {:send, nonce, query, payload}
   end
 
   @doc """
@@ -330,7 +349,7 @@ defmodule Singyeong.Client do
   """
   @spec broadcast_msg(String.t() | nil, Query.t(), term()) :: :ok
   def broadcast_msg(nonce, query, payload) do
-    :websocket_client.cast __MODULE__, {:broadcast, nonce, query, payload}
+    GenServer.cast __MODULE__, {:broadcast, nonce, query, payload}
   end
 
   @doc """
@@ -347,7 +366,7 @@ defmodule Singyeong.Client do
   """
   @spec queue_msg(String.t(), String.t() | nil, Query.t(), term()) :: :ok
   def queue_msg(queue, nonce, query, payload) do
-    :websocket_client.cast __MODULE__, {:queue, queue, nonce, query, payload}
+    GenServer.cast __MODULE__, {:queue, queue, nonce, query, payload}
   end
 
   @doc """
@@ -355,7 +374,7 @@ defmodule Singyeong.Client do
   """
   @spec queue_request(String.t()) :: :ok
   def queue_request(queue) do
-    :websocket_client.cast __MODULE__, {:queue_request, queue}
+    GenServer.cast __MODULE__, {:queue_request, queue}
   end
 
   @doc """
@@ -364,7 +383,7 @@ defmodule Singyeong.Client do
   """
   @spec queue_ack(String.t(), String.t()) :: :ok
   def queue_ack(queue, id) do
-    :websocket_client.cast __MODULE__, {:queue_ack, queue, id}
+    GenServer.cast __MODULE__, {:queue_ack, queue, id}
   end
 
   @doc """
@@ -401,7 +420,7 @@ defmodule Singyeong.Client do
   """
   @spec update_metadata(Metadata.t()) :: :ok
   def update_metadata(metadata) do
-    :websocket_client.cast __MODULE__, {:metadata_update, metadata}
+    GenServer.cast __MODULE__, {:metadata_update, metadata}
   end
 
   #######################

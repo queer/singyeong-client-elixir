@@ -40,7 +40,7 @@ defmodule Singyeong.MixProject do
 
   defp deps do
     [
-      {:websocket_client, "~> 1.4"},
+      {:gun, "~> 1.3"},
       {:typed_struct, "~> 0.2.1"},
       {:gen_stage, "~> 1.0"},
       {:httpoison, "~> 1.7"},
