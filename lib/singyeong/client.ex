@@ -62,7 +62,7 @@ defmodule Singyeong.Client do
         app_id: app_id,
         client_id: id(32),
         auth: password,
-        uri: uri,
+        host: host,
         port: port,
         conn: nil,
       }
