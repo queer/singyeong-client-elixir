@@ -85,13 +85,8 @@ defmodule Singyeong.Client do
     try do
       case process_frame(payload[:op], payload, state) do
         {:reply, reply, new_state} ->
-          out =
-            reply
-            |> Map.from_struct
-            |> Utils.stringify_keys(true)
-            |> :erlang.term_to_binary
-
-          {:reply, {:binary, out}, new_state}
+          out = reply reply
+          {:reply, out, new_state}
 
         {:ok, _} = ok ->
           ok
@@ -126,7 +121,7 @@ defmodule Singyeong.Client do
         }
       }
 
-    {:reply, reply, state}
+    {:reply, reply(reply), state}
   end
 
   defp process_frame(@op_ready, _, state) do
@@ -286,7 +281,15 @@ defmodule Singyeong.Client do
     :ok
   end
 
-  defp reply(payload), do: {:binary, :erlang.term_to_binary(payload)}
+  defp reply(payload) do
+    out =
+      payload
+      |> Map.from_struct
+      |> Utils.stringify_keys(true)
+      |> :erlang.term_to_binary
+
+    {:binary, out}
+  end
 
   #########################
   ## EXTERNAL SOCKET API ##
