@@ -31,7 +31,7 @@ defmodule Singyeong.Client do
   @op_error         8
 
 
-  def start_link({app_id, password, host, port, scheme} = opts) do
+  def start_link({app_id, password, host, port, scheme}) do
     uri = "#{scheme}://#{host}:#{port}/gateway/websocket?encoding=etf"
     Logger.debug "[신경] client: starting link, uri=#{uri}."
     GenServer.start_link __MODULE__, %{
@@ -65,6 +65,8 @@ defmodule Singyeong.Client do
         app_id: app_id,
         client_id: id(32),
         auth: password,
+        uri: uri,
+        port: port,
         conn: nil,
       }
 
@@ -73,6 +75,7 @@ defmodule Singyeong.Client do
     {:ok, state, {:continue, :connect}}
   end
 
+  @impl GenServer
   def handle_continue(:connect, %{port: port, uri: uri} = state) do
     {:ok, worker} =
       uri
@@ -97,16 +100,17 @@ defmodule Singyeong.Client do
         Logger.error "[신경] connect: :gun_error: #{inspect reason, pretty: true}"
         exit {:ws_upgrade_failed, reason}
     after
-      @timeout_ws_upgrade ->
-        Logger.error "[신경] connect: cannot upgrade: timeout after #{@timeout_ws_upgrade / 1000} seconds"
+      5000 ->
+        Logger.error "[신경] connect: cannot upgrade: timeout after 5 seconds"
 
         exit :timeout
     end
   end
 
+  @impl GenServer
   def handle_info({:gun_ws, _worker, _stream, {:binary, frame}}, state) do
     # TODO: This is unsafe
-    payload = :erlang.binary_to_term msg
+    payload = :erlang.binary_to_term frame
     try do
       case process_frame(payload[:op], payload, state) do
         {:reply, reply, new_state} ->
@@ -189,7 +193,7 @@ defmodule Singyeong.Client do
     {:ok, state}
   end
 
-  def handle_info({:heartbeat, interval}, _ws, %{client_id: client_id} = state) do
+  def handle_cast({:heartbeat, interval}, _ws, %{client_id: client_id} = state) do
     reply =
       %Payload{
         op: @op_heartbeat,
@@ -205,7 +209,7 @@ defmodule Singyeong.Client do
     {:noreply, state}
   end
 
-  def handle_info({:send, nonce, query, payload}, _ws, state) do
+  def handle_cast({:send, nonce, query, payload}, _ws, state) do
     reply =
       %Payload{
         op: @op_dispatch,
@@ -222,7 +226,7 @@ defmodule Singyeong.Client do
     {:noreply, state}
   end
 
-  def handle_info({:broadcast, nonce, query, payload}, _ws, state) do
+  def handle_cast({:broadcast, nonce, query, payload}, _ws, state) do
     reply =
       %Payload{
         op: @op_dispatch,
@@ -239,7 +243,7 @@ defmodule Singyeong.Client do
     {:noreply, state}
   end
 
-  def handle_info({:queue, queue, nonce, query, payload}, _ws, state) do
+  def handle_cast({:queue, queue, nonce, query, payload}, _ws, state) do
     reply =
       %Payload{
         op: @op_dispatch,
@@ -257,7 +261,7 @@ defmodule Singyeong.Client do
     {:noreply, state}
   end
 
-  def handle_info({:queue_request, queue}, _ws, state) do
+  def handle_cast({:queue_request, queue}, _ws, state) do
     reply =
       %Payload{
         op: @op_dispatch,
@@ -272,7 +276,7 @@ defmodule Singyeong.Client do
     {:noreply, state}
   end
 
-  def handle_info({:queue_ack, queue, id}, _ws, state) do
+  def handle_cast({:queue_ack, queue, id}, _ws, state) do
     reply =
       %Payload{
         op: @op_dispatch,
@@ -288,7 +292,7 @@ defmodule Singyeong.Client do
     {:noreply, state}
   end
 
-  def handle_info({:metadata_update, metadata}, _ws, state) do
+  def handle_cast({:metadata_update, metadata}, _ws, state) do
     reply =
       %Payload{
         op: @op_dispatch,
