@@ -85,7 +85,7 @@ defmodule Singyeong.Client do
     try do
       case process_frame(payload[:op], payload, state) do
         {:reply, reply, new_state} ->
-          out = reply reply
+          out = __MODULE__.reply reply
           {:reply, out, new_state}
 
         {:ok, _} = ok ->
@@ -274,6 +274,11 @@ defmodule Singyeong.Client do
 
     Logger.debug "[신경] metadata: sending update"
     {:reply, reply(reply), state}
+  end
+
+  def websocket_info({:tcp_closed, _port}, _ws, state) do
+    Logger.info "[신경] disconnected: tcp closed: reconnect in 100ms."
+    {:reconnect, 100, state}
   end
 
   @impl :websocket_client
