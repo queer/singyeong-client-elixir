@@ -287,7 +287,7 @@ defmodule Singyeong.Client do
     :ok
   end
 
-  defp reply(payload) do
+  def reply(payload) do
     out =
       payload
       |> Map.from_struct
