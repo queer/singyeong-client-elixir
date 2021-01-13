@@ -32,7 +32,7 @@ defmodule Singyeong.Client do
 
 
   def start_link({app_id, password, host, port, scheme}) do
-    uri = "#{scheme}://#{host}:#{port}/gateway/websocket?encoding=etf"
+    uri = "#{scheme}://#{host}:#{port}/gateway/websocket"
     Logger.debug "[신경] client: starting link, uri=#{uri}."
     GenServer.start_link __MODULE__, %{
       app_id: app_id,
@@ -83,7 +83,7 @@ defmodule Singyeong.Client do
       |> :gun.open(port)
 
     {:ok, :http} = :gun.await_up worker, 5_000
-    stream = :gun.ws_upgrade worker, "/"
+    stream = :gun.ws_upgrade worker, "?encoding=etf"
     await_ws_upgrade worker, stream
     state = %{state | conn: worker}
     {:noreply, state}
