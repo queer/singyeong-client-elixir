@@ -80,7 +80,7 @@ defmodule Singyeong.Client do
       |> :gun.open(port)
 
     {:ok, :http} = :gun.await_up worker, 5_000
-    stream = :gun.ws_upgrade worker, "?encoding=etf"
+    stream = :gun.ws_upgrade worker, "/gateway/websocket?encoding=etf"
     await_ws_upgrade worker, stream
     state = %{state | conn: worker}
     {:noreply, state}
@@ -111,14 +111,14 @@ defmodule Singyeong.Client do
     try do
       case process_frame(payload[:op], payload, state) do
         {:reply, reply, new_state} ->
-          out = __MODULE__.reply reply
-          {:reply, out, new_state}
+          :gun.ws_send state.conn, reply(reply)
+          {:noreply, new_state}
 
-        {:ok, _} = ok ->
-          ok
+        {:ok, _}->
+          {:noreply, state}
 
         {:noreply, new_state} ->
-          {:ok, new_state}
+          {:noreply, new_state}
 
         {:close, _} = close ->
           close
@@ -143,10 +143,10 @@ defmodule Singyeong.Client do
   end
 
   def handle_info({:gun_up, worker, _proto}, state) do
-    stream = :gun.ws_upgrade worker, state.uri
+    stream = :gun.ws_upgrade worker, "/gateway/websocket?encoding=etf"
     await_ws_upgrade worker, stream
     Logger.warn "[신경] Reconnected after connection broke"
-    {:noreply, %{state | heartbeat_ack: true}}
+    {:noreply, state}
   end
 
   defp process_frame(@op_hello, frame, %{app_id: app_id, client_id: client_id, auth: auth} = state) do
@@ -180,17 +180,17 @@ defmodule Singyeong.Client do
   end
 
   defp process_frame(@op_dispatch, frame, state) do
-    Logger.debug "[신경] dispatch: frame: #{inspect frame}"
+    Logger.debug "[신경] dispatch: recv frame: #{inspect frame}"
     event =
       case Utils.event_name_to_atom(frame.t) do
         :send ->
-          {:send, frame.d["nonce"], frame.d["payload"]}
+          {:send, frame.d.nonce, frame.d.payload}
 
         :broadcast ->
-          {:broadcast, frame.d["nonce"], frame.d["payload"]}
+          {:broadcast, frame.d.nonce, frame.d.payload}
 
         :queue ->
-          {:queue, frame.d["payload"]["queue"], frame.d["nonce"], frame.d["payload"]["payload"]}
+          {:queue, frame.d.payload["queue"], frame.d.nonce, frame.d.payload["payload"]}
 
         :queue_confirm ->
           {:queue_confirm, frame.d["queue"]}
@@ -207,7 +207,7 @@ defmodule Singyeong.Client do
     {:ok, state}
   end
 
-  def handle_cast({:heartbeat, interval}, _ws, %{client_id: client_id} = state) do
+  def handle_info({:heartbeat, interval}, %{client_id: client_id} = state) do
     reply =
       %Payload{
         op: @op_heartbeat,
@@ -217,13 +217,13 @@ defmodule Singyeong.Client do
       }
 
     Logger.debug "[신경] heartbeat: sending"
-    :gun_ws.send state.conn, reply(reply)
+    :gun.ws_send state.conn, reply(reply)
     Process.send_after self(), {:heartbeat, interval}, interval
 
     {:noreply, state}
   end
 
-  def handle_cast({:send, nonce, query, payload}, _ws, state) do
+  def handle_cast({:send, nonce, query, payload}, state) do
     reply =
       %Payload{
         op: @op_dispatch,
@@ -236,11 +236,11 @@ defmodule Singyeong.Client do
       }
 
     Logger.debug "[신경] send: dispatching"
-    :gun_ws.send state.conn, reply(reply)
+    :gun.ws_send state.conn, reply(reply)
     {:noreply, state}
   end
 
-  def handle_cast({:broadcast, nonce, query, payload}, _ws, state) do
+  def handle_cast({:broadcast, nonce, query, payload}, state) do
     reply =
       %Payload{
         op: @op_dispatch,
@@ -253,11 +253,11 @@ defmodule Singyeong.Client do
       }
 
     Logger.debug "[신경] broadcast: dispatching"
-    :gun_ws.send state.conn, reply(reply)
+    :gun.ws_send state.conn, reply(reply)
     {:noreply, state}
   end
 
-  def handle_cast({:queue, queue, nonce, query, payload}, _ws, state) do
+  def handle_cast({:queue, queue, nonce, query, payload}, state) do
     reply =
       %Payload{
         op: @op_dispatch,
@@ -271,11 +271,11 @@ defmodule Singyeong.Client do
       }
 
     Logger.debug "[신경] queue: dispatching"
-    :gun_ws.send state.conn, reply(reply)
+    :gun.ws_send state.conn, reply(reply)
     {:noreply, state}
   end
 
-  def handle_cast({:queue_request, queue}, _ws, state) do
+  def handle_cast({:queue_request, queue}, state) do
     reply =
       %Payload{
         op: @op_dispatch,
@@ -286,11 +286,11 @@ defmodule Singyeong.Client do
       }
 
     Logger.debug "[신경] queue: requesting"
-    :gun_ws.send state.conn, reply(reply)
+    :gun.ws_send state.conn, reply(reply)
     {:noreply, state}
   end
 
-  def handle_cast({:queue_ack, queue, id}, _ws, state) do
+  def handle_cast({:queue_ack, queue, id}, state) do
     reply =
       %Payload{
         op: @op_dispatch,
@@ -302,11 +302,11 @@ defmodule Singyeong.Client do
       }
 
     Logger.debug "[신경] queue: acking"
-    :gun_ws.send state.conn, reply(reply)
+    :gun.ws_send state.conn, reply(reply)
     {:noreply, state}
   end
 
-  def handle_cast({:metadata_update, metadata}, _ws, state) do
+  def handle_cast({:metadata_update, metadata}, state) do
     reply =
       %Payload{
         op: @op_dispatch,
@@ -315,7 +315,7 @@ defmodule Singyeong.Client do
       }
 
     Logger.debug "[신경] metadata: sending update"
-    :gun_ws.send state.conn, reply(reply)
+    :gun.ws_send state.conn, reply(reply)
     {:noreply, state}
   end
 
