@@ -314,7 +314,7 @@ defmodule Singyeong.Client do
         d: metadata,
       }
 
-    Logger.debug "[신경] metadata: sending update"
+    # Logger.debug "[신경] metadata: sending update"
     :gun.ws_send state.conn, reply(reply)
     {:noreply, state}
   end
