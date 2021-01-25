@@ -479,7 +479,7 @@ defmodule Singyeong.Client do
     res = HTTPoison.request! :post, "#{protocol}://#{host}:#{port}/api/v1/proxy", proxy_body,
         [{"Content-Type", "application/json"}, {"Authorization", auth}]
 
-    res.body
+    Jason.decode! res.body
   end
 
   ###################
@@ -502,7 +502,7 @@ defmodule Singyeong.Client do
     res = HTTPoison.request! :post, "#{protocol}://#{host}:#{port}/api/v1/query", body,
         [{"Content-Type", "application/json"}, {"Authorization", auth}]
 
-    res.body
+    Jason.decode! res.body
   end
 
   ###############
