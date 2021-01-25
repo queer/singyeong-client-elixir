@@ -487,10 +487,10 @@ defmodule Singyeong.Client do
   ###################
 
   def query_metadata(query) do
-    [{:auth, auth}] = :ets.lookup :singyeong, :password
-    [{:host, host}] = :ets.lookup :singyeong, :host
-    [{:port, port}] = :ets.lookup :singyeong, :port
-    [{:ssl,  ssl }] = :ets.lookup :singyeong, :ssl
+    [{:password, auth}] = :ets.lookup :singyeong, :password
+    [{:host,     host}] = :ets.lookup :singyeong, :host
+    [{:port,     port}] = :ets.lookup :singyeong, :port
+    [{:ssl,      ssl }] = :ets.lookup :singyeong, :ssl
 
     protocol = if ssl, do: "https", else: "http"
 
