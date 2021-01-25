@@ -454,7 +454,7 @@ defmodule Singyeong.Client do
   """
   @spec proxy(Query.t(), String.t(), http_method(), term()) :: term()
   def proxy(query, route, method, body \\ nil) do
-    [{:auth, auth}] = :ets.lookup :singyeong, :auth
+    [{:auth, auth}] = :ets.lookup :singyeong, :password
     [{:host, host}] = :ets.lookup :singyeong, :host
     [{:port, port}] = :ets.lookup :singyeong, :port
     [{:ssl,  ssl }] = :ets.lookup :singyeong, :ssl
@@ -487,7 +487,7 @@ defmodule Singyeong.Client do
   ###################
 
   def query_metadata(query) do
-    [{:auth, auth}] = :ets.lookup :singyeong, :auth
+    [{:auth, auth}] = :ets.lookup :singyeong, :password
     [{:host, host}] = :ets.lookup :singyeong, :host
     [{:port, port}] = :ets.lookup :singyeong, :port
     [{:ssl,  ssl }] = :ets.lookup :singyeong, :ssl
