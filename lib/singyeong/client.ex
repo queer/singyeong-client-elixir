@@ -23,12 +23,14 @@ defmodule Singyeong.Client do
   @op_hello         0
   @op_identify      1
   @op_ready         2
-  @op_invalid       3
+  # TODO: Use these
+  # @op_invalid       3
   @op_dispatch      4
   @op_heartbeat     5
+  # TODO: Use these
   @op_heartbeat_ack 6
-  @op_goodbye       7
-  @op_error         8
+  # @op_goodbye       7
+  # @op_error         8
 
 
   def start_link({app_id, password, host, port, scheme}) do
@@ -149,6 +151,22 @@ defmodule Singyeong.Client do
     {:noreply, state}
   end
 
+  def handle_info({:heartbeat, interval}, %{client_id: client_id} = state) do
+    reply =
+      %Payload{
+        op: @op_heartbeat,
+        d: %{
+          client_id: client_id,
+        }
+      }
+
+    Logger.debug "[신경] heartbeat: sending"
+    :gun.ws_send state.conn, reply(reply)
+    Process.send_after self(), {:heartbeat, interval}, interval
+
+    {:noreply, state}
+  end
+
   defp process_frame(@op_hello, frame, %{app_id: app_id, client_id: client_id, auth: auth} = state) do
     interval = frame.d["heartbeat_interval"]
     Logger.debug "[신경] heartbeat: interval=#{interval}"
@@ -207,22 +225,7 @@ defmodule Singyeong.Client do
     {:ok, state}
   end
 
-  def handle_info({:heartbeat, interval}, %{client_id: client_id} = state) do
-    reply =
-      %Payload{
-        op: @op_heartbeat,
-        d: %{
-          client_id: client_id,
-        }
-      }
-
-    Logger.debug "[신경] heartbeat: sending"
-    :gun.ws_send state.conn, reply(reply)
-    Process.send_after self(), {:heartbeat, interval}, interval
-
-    {:noreply, state}
-  end
-
+  @impl GenServer
   def handle_cast({:send, nonce, query, payload}, state) do
     reply =
       %Payload{
@@ -474,6 +477,29 @@ defmodule Singyeong.Client do
       |> Jason.encode!
 
     res = HTTPoison.request! :post, "#{protocol}://#{host}:#{port}/api/v1/proxy", proxy_body,
+        [{"Content-Type", "application/json"}, {"Authorization", auth}]
+
+    res.body
+  end
+
+  ###################
+  ## API ENDPOINTS ##
+  ###################
+
+  def query_metadata(query) do
+    [{:auth, auth}] = :ets.lookup :singyeong, :auth
+    [{:host, host}] = :ets.lookup :singyeong, :host
+    [{:port, port}] = :ets.lookup :singyeong, :port
+    [{:ssl,  ssl }] = :ets.lookup :singyeong, :ssl
+
+    protocol = if ssl, do: "https", else: "http"
+
+    body =
+      query
+      |> Map.from_struct
+      |> Jason.encode!
+
+    res = HTTPoison.request! :post, "#{protocol}://#{host}:#{port}/api/v1/query", body,
         [{"Content-Type", "application/json"}, {"Authorization", auth}]
 
     res.body
