@@ -43,7 +43,9 @@ defmodule Singyeong.Consumer do
       require Logger
 
       def start_link(event) do
-        __MODULE__.handle_event event
+        Task.start_link fn ->
+          __MODULE__.handle_event event
+        end
       end
 
       def child_spec(_) do
