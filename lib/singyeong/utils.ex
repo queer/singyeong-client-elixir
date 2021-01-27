@@ -8,20 +8,30 @@ defmodule Singyeong.Utils do
 
   def stringify_keys(map, recurse? \\ false)
 
-  def stringify_keys(map, recurse?) when is_map(map) do
+  def stringify_keys(map, recurse?) when is_map(map) and not is_struct(map) do
     map
     |> Enum.map(fn {k, v} ->
-      if is_binary(k) do
-        {k, stringify_keys(v)}
-      else
-        if recurse? do
-          {Atom.to_string(k), stringify_keys(v)}
-        else
+      cond do
+        is_binary(k) and not recurse? ->
+          {k, v}
+
+        is_binary(k) and recurse? ->
+          {k, stringify_keys(v, true)}
+
+        is_atom(k) and not recurse? ->
           {Atom.to_string(k), v}
-        end
+
+        is_atom(k) and recurse? ->
+          {Atom.to_string(k), stringify_keys(v, true)}
       end
     end)
     |> Enum.into(%{})
+  end
+
+  def stringify_keys(struct, recurse?) when is_struct(struct) do
+    struct
+    |> Map.from_struct
+    |> stringify_keys(recurse?)
   end
 
   def stringify_keys(not_map, _), do: not_map
