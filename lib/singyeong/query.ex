@@ -79,7 +79,13 @@ defmodule Singyeong.Query do
   Converts the provided values into a proper boolean op.
   """
   @spec values_to_op(boolean_op_name(), String.t(), term()) :: boolean_op()
-  def values_to_op(op, key, value), do: %{key => %{op => value}}
+  def values_to_op(op, key, value), do: %{
+    "path" => "/#{key}",
+    "op" => "#{op}",
+    "to" => %{
+      "value" => value,
+    },
+  }
 
   @doc """
   Adds the provided boolean op to the query.
@@ -102,7 +108,13 @@ defmodule Singyeong.Query do
   """
   @spec with_logical_op(__MODULE__.t(), logical_op_name(), op(), op()) :: __MODULE__.t()
   def with_logical_op(%__MODULE__{ops: ops} = query, logical_op, op1, op2) when logical_op in @logical_op_names do
-    %{query | ops: ops ++ [%{logical_op => [op1, op2]}]}
+    %{
+      query
+      | ops: ops ++ [%{
+        "op" => "#{logical_op}",
+        "with" => [op1, op2],
+      }]
+    }
   end
 
   @doc """
