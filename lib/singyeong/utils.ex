@@ -34,6 +34,10 @@ defmodule Singyeong.Utils do
     |> stringify_keys(recurse?)
   end
 
+  def stringify_keys(list, recurse?) when is_list(list) do
+    Enum.map list, &stringify_keys(&1, recurse?)
+  end
+
   def stringify_keys(not_map, _), do: not_map
 
   def event_name_to_atom(event) do
