@@ -27,8 +27,8 @@ defmodule Singyeong.Client do
   # @op_invalid       3
   @op_dispatch      4
   @op_heartbeat     5
-  # TODO: Use these
   @op_heartbeat_ack 6
+  # TODO: Use these
   # @op_goodbye       7
   # @op_error         8
 
@@ -67,6 +67,7 @@ defmodule Singyeong.Client do
         host: host,
         port: port,
         conn: nil,
+        metadata: %{},
       }
 
     Logger.debug "[신경] client: init: ready for payloads."
@@ -186,9 +187,17 @@ defmodule Singyeong.Client do
     {:reply, reply, state}
   end
 
-  defp process_frame(@op_ready, _, state) do
+  defp process_frame(@op_ready, _, %{metadata: metadata} = state) do
     Logger.info "[신경] connect: ready."
     Logger.info "[신경] connect: welcome to 신경."
+    # On connect, send our old cached metadata
+    state =
+      if metadata == %{} do
+        state
+      else
+        do_metadata_update metadata, state
+      end
+
     {:noreply, state}
   end
 
@@ -310,6 +319,13 @@ defmodule Singyeong.Client do
   end
 
   def handle_cast({:metadata_update, metadata}, state) do
+    # Logger.debug "[신경] metadata: sending update"
+    new_state = do_metadata_update metadata, state
+    {:noreply, new_state}
+  end
+
+
+  defp do_metadata_update(metadata, %{conn: conn, metadata: current} = state) do
     reply =
       %Payload{
         op: @op_dispatch,
@@ -317,13 +333,12 @@ defmodule Singyeong.Client do
         d: metadata,
       }
 
-    # Logger.debug "[신경] metadata: sending update"
-    :gun.ws_send state.conn, reply(reply)
-    {:noreply, state}
+    :gun.ws_send conn, reply(reply)
+    %{state | metadata: Map.merge(current, metadata)}
   end
 
   def terminate(_info, _ws, _state) do
-    Logger.info "[신경] connect: abnormal close"
+    Logger.warn "[신경] connect: abnormal close"
     :ok
   end
 
