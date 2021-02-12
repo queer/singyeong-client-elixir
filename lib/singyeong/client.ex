@@ -474,7 +474,7 @@ defmodule Singyeong.Client do
     query_body =
       query
       |> Map.from_struct
-      |> Utils.stringify(true)
+      |> Utils.stringify_keys(true)
 
     proxy_body =
       %ProxiedRequest{
