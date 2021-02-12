@@ -33,7 +33,7 @@ defmodule Singyeong.Client do
   # @op_error         8
 
 
-  def start_link({app_id, password, host, port, scheme}) do
+  def start_link({ip, {app_id, password, host, port, scheme}}) do
     Logger.debug "[신경] client: starting link, uri=#{scheme}://#{app_id}:#{password}@#{host}:#{port}"
     GenServer.start_link __MODULE__, %{
       app_id: app_id,
@@ -41,6 +41,7 @@ defmodule Singyeong.Client do
       host: host,
       port: port,
       scheme: scheme,
+      ip: ip,
     }, name: __MODULE__
   end
 
@@ -51,6 +52,7 @@ defmodule Singyeong.Client do
     host: host,
     port: port,
     scheme: scheme,
+    ip: ip,
   }) do
     :ets.new :singyeong, [:named_table, :set, :public, read_concurrency: true]
     :ets.insert :singyeong, {:app_id,   app_id}
@@ -67,6 +69,7 @@ defmodule Singyeong.Client do
         host: host,
         port: port,
         conn: nil,
+        ip: ip,
         metadata: %{},
       }
 
@@ -168,7 +171,7 @@ defmodule Singyeong.Client do
     {:noreply, state}
   end
 
-  defp process_frame(@op_hello, frame, %{app_id: app_id, client_id: client_id, auth: auth} = state) do
+  defp process_frame(@op_hello, frame, %{app_id: app_id, client_id: client_id, auth: auth, ip: ip} = state) do
     interval = frame.d["heartbeat_interval"]
     Logger.debug "[신경] heartbeat: interval=#{interval}"
     Process.send_after self(), {:heartbeat, interval}, interval
@@ -180,6 +183,7 @@ defmodule Singyeong.Client do
           application_id: app_id,
           client_id: client_id,
           auth: auth,
+          ip: ip,
         }
       }
 
