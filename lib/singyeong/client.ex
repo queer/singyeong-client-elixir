@@ -471,17 +471,25 @@ defmodule Singyeong.Client do
       |> Atom.to_string
       |> String.upcase
 
+    query_body =
+      query
+      |> Map.from_struct
+      |> Utils.stringify(true)
+
     proxy_body =
       %ProxiedRequest{
         method: method,
         route: route,
-        query: query,
+        query: query_body,
         body: body,
       }
       |> Map.from_struct
       |> Jason.encode!
 
-    res = HTTPoison.request! :post, "#{protocol}://#{host}:#{port}/api/v1/proxy", proxy_body,
+    proxy_url = "#{protocol}://#{host}:#{port}/api/v1/proxy"
+    Logger.debug "[PROXY] -> #{proxy_url}"
+
+    res = HTTPoison.request! :post, proxy_url, proxy_body,
         [{"Content-Type", "application/json"}, {"Authorization", auth}]
 
     Jason.decode! res.body
