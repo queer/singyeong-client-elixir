@@ -342,16 +342,6 @@ defmodule Singyeong.Client do
     :ok
   end
 
-  def reply(payload) do
-    out =
-      payload
-      |> Map.from_struct
-      |> Utils.stringify_keys(true)
-      |> :erlang.term_to_binary
-
-    {:binary, out}
-  end
-
   #########################
   ## EXTERNAL SOCKET API ##
   #########################
@@ -469,10 +459,10 @@ defmodule Singyeong.Client do
   """
   @spec proxy(Query.t(), String.t(), http_method(), term()) :: term()
   def proxy(query, route, method, body \\ nil) do
-    [{:auth, auth}] = :ets.lookup :singyeong, :password
-    [{:host, host}] = :ets.lookup :singyeong, :host
-    [{:port, port}] = :ets.lookup :singyeong, :port
-    [{:ssl,  ssl }] = :ets.lookup :singyeong, :ssl
+    [{:password, auth}] = :ets.lookup :singyeong, :password
+    [{:host,     host}] = :ets.lookup :singyeong, :host
+    [{:port,     port}] = :ets.lookup :singyeong, :port
+    [{:ssl,      ssl }] = :ets.lookup :singyeong, :ssl
 
     protocol = if ssl, do: "https", else: "http"
 
@@ -529,5 +519,15 @@ defmodule Singyeong.Client do
     |> :crypto.strong_rand_bytes
     |> Base.url_encode64(padding: false)
     |> binary_part(0, length)
+  end
+
+  def reply(payload) do
+    out =
+      payload
+      |> Map.from_struct
+      |> Utils.stringify_keys(true)
+      |> :erlang.term_to_binary
+
+    {:binary, out}
   end
 end
