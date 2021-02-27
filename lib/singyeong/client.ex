@@ -171,7 +171,7 @@ defmodule Singyeong.Client do
     {:noreply, state}
   end
 
-  defp process_frame(@op_hello, frame, %{app_id: app_id, client_id: client_id, auth: auth, ip: ip} = state) do
+  defp process_frame(@op_hello, frame, %{app_id: app_id, client_id: client_id, auth: auth, ip: ip, metadata: metadata} = state) do
     interval = frame.d["heartbeat_interval"]
     Logger.debug "[신경] heartbeat: interval=#{interval}"
     Process.send_after self(), {:heartbeat, interval}, interval
@@ -184,6 +184,7 @@ defmodule Singyeong.Client do
           client_id: client_id,
           auth: auth,
           ip: ip,
+          metadata: metadata || %{},
         }
       }
 
@@ -191,16 +192,9 @@ defmodule Singyeong.Client do
     {:reply, reply, state}
   end
 
-  defp process_frame(@op_ready, _, %{metadata: metadata} = state) do
+  defp process_frame(@op_ready, _, state) do
     Logger.info "[신경] connect: ready."
     Logger.info "[신경] connect: welcome to 신경."
-    # On connect, send our old cached metadata
-    state =
-      if metadata == %{} do
-        state
-      else
-        do_metadata_update metadata, state
-      end
 
     {:noreply, state}
   end
