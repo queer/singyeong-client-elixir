@@ -16,6 +16,8 @@ defmodule Singyeong.Client do
       | :patch
       | :delete
 
+  @timeout :infinity
+
   ###############
   ## WEBSOCKET ##
   ###############
@@ -511,7 +513,7 @@ defmodule Singyeong.Client do
       |> Jason.encode!
 
     res = HTTPoison.request! :post, "#{protocol}://#{host}:#{port}/api/v1/query", body,
-        [{"Content-Type", "application/json"}, {"Authorization", auth}]
+        [{"Content-Type", "application/json"}, {"Authorization", auth}], [timeout: @timeout, recv_timeout: @timeout]
 
     Jason.decode! res.body
   end
