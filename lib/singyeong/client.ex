@@ -166,7 +166,7 @@ defmodule Singyeong.Client do
         }
       }
 
-    Logger.debug "[신경] heartbeat: sending"
+    # Logger.debug "[신경] heartbeat: sending"
     :gun.ws_send state.conn, reply(reply)
     Process.send_after self(), {:heartbeat, interval}, interval
 
@@ -202,12 +202,12 @@ defmodule Singyeong.Client do
   end
 
   defp process_frame(@op_heartbeat_ack, _frame, state) do
-    Logger.debug "[신경] heartbeat: ack"
+    # Logger.debug "[신경] heartbeat: ack"
     {:noreply, state}
   end
 
   defp process_frame(@op_dispatch, frame, state) do
-    Logger.debug "[신경] dispatch: recv frame: #{inspect frame}"
+    # Logger.debug "[신경] dispatch: recv frame: #{inspect frame}"
     event =
       case Utils.event_name_to_atom(frame.t) do
         :send ->
@@ -247,7 +247,7 @@ defmodule Singyeong.Client do
         },
       }
 
-    Logger.debug "[신경] send: dispatching"
+    # Logger.debug "[신경] send: dispatching"
     :gun.ws_send state.conn, reply(reply)
     {:noreply, state}
   end
@@ -264,7 +264,7 @@ defmodule Singyeong.Client do
         },
       }
 
-    Logger.debug "[신경] broadcast: dispatching"
+    # Logger.debug "[신경] broadcast: dispatching"
     :gun.ws_send state.conn, reply(reply)
     {:noreply, state}
   end
@@ -282,7 +282,7 @@ defmodule Singyeong.Client do
         },
       }
 
-    Logger.debug "[신경] queue: dispatching"
+    # Logger.debug "[신경] queue: dispatching"
     :gun.ws_send state.conn, reply(reply)
     {:noreply, state}
   end
@@ -297,7 +297,7 @@ defmodule Singyeong.Client do
         },
       }
 
-    Logger.debug "[신경] queue: requesting"
+    # Logger.debug "[신경] queue: requesting"
     :gun.ws_send state.conn, reply(reply)
     {:noreply, state}
   end
@@ -313,7 +313,7 @@ defmodule Singyeong.Client do
         }
       }
 
-    Logger.debug "[신경] queue: acking"
+    # Logger.debug "[신경] queue: acking"
     :gun.ws_send state.conn, reply(reply)
     {:noreply, state}
   end
@@ -487,7 +487,7 @@ defmodule Singyeong.Client do
       |> Jason.encode!
 
     proxy_url = "#{protocol}://#{host}:#{port}/api/v1/proxy"
-    Logger.debug "[PROXY] -> #{proxy_url}"
+    # Logger.debug "[PROXY] -> #{proxy_url}"
 
     res = HTTPoison.request! :post, proxy_url, proxy_body,
         [{"Content-Type", "application/json"}, {"Authorization", auth}],
