@@ -326,6 +326,7 @@ defmodule Singyeong.Client do
     {:noreply, new_state}
   end
 
+  @impl true
   def handle_call(:connected?, _caller, state) do
     {:reply, state.connected, state}
   end
