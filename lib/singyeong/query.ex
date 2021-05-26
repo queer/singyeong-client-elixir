@@ -128,4 +128,12 @@ defmodule Singyeong.Query do
       %{query | selector: %{selector => key}}
     end
   end
+
+  @doc """
+  Merge the given ops into this query
+  """
+  @spec merge(__MODULE__.t(), [op()]) :: __MODULE__.t()
+  def merge(%__MODULE__{} = query, ops) do
+    %{query | ops: query.ops ++ []}
+  end
 end
