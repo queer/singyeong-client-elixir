@@ -73,6 +73,8 @@ defmodule Singyeong.Client do
         conn: nil,
         ip: ip,
         metadata: %{},
+        connected: false,
+        heartbeat_task: nil,
       }
 
     Logger.debug "[신경] client: init: ready for payloads."
@@ -142,12 +144,12 @@ defmodule Singyeong.Client do
 
   def handle_info({:gun_ws, _conn, _stream, {:close, code, reason}}, state) do
     Logger.warn "[신경] disconnect: code #{code}, reason #{inspect reason}"
-    {:noreply, state}
+    {:noreply, %{state | connected: false}}
   end
 
   def handle_info({:gun_down, _conn, _proto, _reason, _, _}, state) do
-    # TODO: Use a real timer to cancel heartbeat task
-    {:noreply, state}
+    Process.cancel_timer state.heartbeat_task
+    {:noreply, %{state | connected: false}}
   end
 
   def handle_info({:gun_up, worker, _proto}, state) do
@@ -168,9 +170,9 @@ defmodule Singyeong.Client do
 
     # Logger.debug "[신경] heartbeat: sending"
     :gun.ws_send state.conn, reply(reply)
-    Process.send_after self(), {:heartbeat, interval}, interval
+    ref = Process.send_after self(), {:heartbeat, interval}, interval
 
-    {:noreply, state}
+    {:noreply, %{state | heartbeat_task: ref}}
   end
 
   defp process_frame(@op_hello, frame, %{app_id: app_id, client_id: client_id, auth: auth, ip: ip, metadata: metadata} = state) do
@@ -198,7 +200,7 @@ defmodule Singyeong.Client do
     Logger.info "[신경] connect: ready."
     Logger.info "[신경] connect: welcome to 신경."
 
-    {:noreply, state}
+    {:noreply, %{state | connected: true}}
   end
 
   defp process_frame(@op_heartbeat_ack, _frame, state) do
@@ -324,6 +326,9 @@ defmodule Singyeong.Client do
     {:noreply, new_state}
   end
 
+  def handle_call(:connected?, _caller, state) do
+    {:reply, state.connected, state}
+  end
 
   defp do_metadata_update(metadata, %{conn: conn, metadata: current} = state) do
     reply =
@@ -539,5 +544,16 @@ defmodule Singyeong.Client do
       |> :erlang.term_to_binary
 
     {:binary, out}
+  end
+
+  defp connected do
+    GenServer.call __MODULE__, :connected?
+  end
+
+  def await_connect do
+    if not connected() do
+      :timer.sleep 50
+      await_connect()
+    end
   end
 end
